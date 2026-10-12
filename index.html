@@ -25,7 +25,7 @@
         header {
             border-bottom: 2px solid var(--border);
             padding-bottom: 20px;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
         }
         h1 {
             font-size: 2.2rem;
@@ -49,6 +49,47 @@
             font-size: 0.75rem;
             text-transform: uppercase;
         }
+        
+        /* --- FILTER BAR STYLING --- */
+        .filter-section {
+            margin-bottom: 30px;
+        }
+        .filter-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            letter-spacing: 0.05em;
+        }
+        .filter-bar {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .filter-btn {
+            background-color: #ffffff;
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            padding: 6px 14px;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .filter-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        .filter-btn.active {
+            background-color: var(--accent);
+            color: #ffffff;
+            border-color: var(--accent);
+            box-shadow: 0 2px 4px rgba(2, 132, 199, 0.2);
+        }
+
+        /* --- CARDS STYLING --- */
         .card {
             background-color: var(--card-bg);
             border: 1px solid var(--border);
@@ -120,17 +161,28 @@
         </div>
     </header>
 
+    <!-- NEW INTERACTIVE FILTER BAR CONTAINER -->
+    <section class="filter-section">
+        <div class="filter-label">Filter Trends by Technology Domain</div>
+        <div class="filter-bar" id="filter-bar">
+            <button class="filter-btn active" onclick="filterDomain('ALL', this)">All Sectors</button>
+        </div>
+    </section>
+
     <main id="content">
         <div id="loading">Intercepting latest R&D telemetry...</div>
     </main>
 
     <script>
+        // Global variables to persist data structure states
+        let allTrendsCached = [];
+
         // Fetch authenticated data securely from JSONbin
         fetch('https://api.jsonbin.io/v3/b/6acc7f24ac6210605a29aecc', {
             method: 'GET',
             headers: {
-                'X-Master-Key': '$2a$10$DFYiXwjOjOlHGq68To3NR.ueSAJ.jBva6cuZmnMa.k6qK4kK1o1Mi'
-            } // Added the missing option block closing bracket cleanly here
+                'X-Master-Key': '\$2a\$10\$DFYiXwjOjOlHGq68To3NR.ueSAJ.jBva6cuZmnMa.k6qK4kK1o1Mi'
+            }
         })
         .then(res => {
             if (!res.ok) throw new Error('Data warehouse offline.');
@@ -138,17 +190,56 @@
         })
         .then(data => {
             document.getElementById('time').innerText = data.record.last_updated || 'Just Now';
+            
+            // Cache raw dataset array records dynamically
+            allTrendsCached = data.record.trends ? data.record.trends : data.record;
+            
+            // Step 1: Render All Trends initially
+            renderCards(allTrendsCached);
+            
+            // Step 2: Extract unique tags dynamically and build filter pills
+            buildFilterBar(allTrendsCached);
+        })
+        .catch(err => {
+            document.getElementById('loading').innerText = 'System Offline: Verify your JSONbin data stream pipeline.';
+            console.error(err);
+        });
+
+        // Function to dynamically build the filter buttons based on active array outputs
+        function buildFilterBar(trends) {
+            const filterBar = document.getElementById('filter-bar');
+            const uniqueTags = new Set();
+            
+            trends.forEach(item => {
+                if (item.tags && Array.isArray(item.tags)) {
+                    item.tags.forEach(tag => uniqueTags.add(tag.trim()));
+                }
+            });
+            
+            // Sort tags alphabetically and create their filter buttons
+            Array.from(uniqueTags).sort().forEach(tag => {
+                const btn = document.createElement('button');
+                btn.className = 'filter-btn';
+                btn.innerText = tag;
+                btn.setAttribute('onclick', `filterDomain('${tag}', this)`);
+                filterBar.appendChild(btn);
+            });
+        }
+
+        // Core compilation card renderer matrix
+        function renderCards(trends) {
             const container = document.getElementById('content');
-            container.innerHTML = ''; // Wipe loading state
+            container.innerHTML = ''; // Clear loading/stale configurations
             
-            // Handle different JSONbin payload wrapper mappings safely
-            const trendsData = data.record.trends ? data.record.trends : data.record;
-            
-            trendsData.forEach(item => {
+            if (trends.length === 0) {
+                container.innerHTML = '<div id="loading">No active trends found matching this taxonomy block.</div>';
+                return;
+            }
+
+            trends.forEach(item => {
                 const card = document.createElement('div');
                 card.className = 'card';
                 
-                // Build out the dynamic tag elements string safely if they exist
                 let tagsHTML = '';
                 if (item.tags && Array.isArray(item.tags)) {
                     item.tags.forEach(tag => {
@@ -167,11 +258,24 @@
                 `;
                 container.appendChild(card);
             });
-        })
-        .catch(err => {
-            document.getElementById('loading').innerText = 'System Offline: Verify your JSONbin data stream pipeline.';
-            console.error(err);
-        });
+        }
+
+        // Dynamic Filtering Trigger Controller
+        function filterDomain(selectedTag, buttonElement) {
+            // Update visual active tracking state across the pill array buttons
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            buttonElement.classList.add('active');
+
+            if (selectedTag === 'ALL') {
+                renderCards(allTrendsCached);
+            } else {
+                // Filter rows matching target tag string bounds
+                const filteredTrends = allTrendsCached.filter(item => 
+                    item.tags && Array.isArray(item.tags) && item.tags.includes(selectedTag)
+                );
+                renderCards(filteredTrends);
+            }
+        }
     </script>
 </body>
 </html>
