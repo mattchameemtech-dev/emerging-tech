@@ -5,12 +5,19 @@ on:
     - cron: '0 0 * * *' # Runs daily at midnight UTC
   workflow_dispatch: # Allows manual trigger execution
 
+# 1. Explicitly grant write access to the runner framework
+permissions:
+  contents: write
+
 jobs:
   run-agent:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+        # 2. Authenticate using the built-in system authorization token
+        token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Set up Python
       uses: actions/setup-python@v5
