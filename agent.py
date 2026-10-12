@@ -15,13 +15,23 @@ RSS_FEEDS = {
 }
 
 def gather_raw_military_data():
-    """Fetches the latest articles from defense technology RSS feeds."""
+    """Fetches the latest articles from defense technology RSS feeds using a browser mask."""
     print("Gathering raw military research feeds...")
     collected_articles = []
     
+    # Disguise the script request so government servers don't block it as a bot
+    browser_headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+    
     for source_name, url in RSS_FEEDS.items():
         try:
-            feed = feedparser.parse(url)
+            # Inject the browser headers directly into the feed downloader
+            feed = feedparser.parse(url, request_headers=browser_headers)
+            
+            # Print a status tracking metric to the terminal
+            print(f"Checking {source_name}... Found {len(feed.entries)} items.")
+            
             # Take the top 4 most recent articles from each source
             for entry in feed.entries[:4]:
                 title = entry.get("title", "")
