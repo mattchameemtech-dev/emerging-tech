@@ -1,0 +1,8 @@
+# 1. Force add the exact file path to make sure Git tracks it
+git add .github/workflows/run-agent.yml
+
+# 2. Commit the change
+git commit -m "Fix: Explicitly tracking workflow file path"
+
+# 3. Push it to your main branch
+git push origin main
