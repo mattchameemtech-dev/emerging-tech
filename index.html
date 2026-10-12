@@ -124,55 +124,54 @@
         <div id="loading">Intercepting latest R&D telemetry...</div>
     </main>
 
-    <!-- CRITICAL: Script tag opens here to wrap the JavaScript safely -->
     <script>
-        // Dynamically fetch the data compiled by your Make.com workflow
-        // !!! REPLACE YOUR_ACTUAL_BIN_ID WITH YOUR BIN STRINGS FROM DASHBOARD !!!
-        fetch('https://api.jsonbin.io/v3/b/6acc7f24ac6210605a29aecc', {
+        // Fetch authenticated data securely from JSONbin
+        fetch('https://jsonbin.io', {
             method: 'GET',
             headers: {
-                'X-Master-Key': '$2a$10$DFYiXwjOjOlHGq68To3NR.ueSAJ.jBva6cuZmnMa.k6qK4kK1o1Mi'
-            })
-            .then(res => {
+                'X-Master-Key': '\$2a\$10\$DFYiXwjOjOlHGq68To3NR.ueSAJ.jBva6cuZmnMa.k6qK4kK1o1Mi'
+            } // Added the missing option block closing bracket cleanly here
+        })
+        .then(res => {
             if (!res.ok) throw new Error('Data warehouse offline.');
             return res.json();
-})
-            .then(data => {
-                document.getElementById('time').innerText = data.record.last_updated || 'Just Now';
-                const container = document.getElementById('content');
-                container.innerHTML = ''; // Wipe loading state
+        })
+        .then(data => {
+            document.getElementById('time').innerText = data.record.last_updated || 'Just Now';
+            const container = document.getElementById('content');
+            container.innerHTML = ''; // Wipe loading state
+            
+            // Handle different JSONbin payload wrapper mappings safely
+            const trendsData = data.record.trends ? data.record.trends : data.record;
+            
+            trendsData.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'card';
                 
-                // Handle different JSONbin payload wrapper mappings safely
-                const trendsData = data.record.trends ? data.record.trends : data.record;
-                
-                trendsData.forEach(item => {
-                    const card = document.createElement('div');
-                    card.className = 'card';
-                    
-                    // Build out the dynamic tag elements string safely if they exist
-                    let tagsHTML = '';
-                    if (item.tags && Array.isArray(item.tags)) {
-                        item.tags.forEach(tag => {
-                            tagsHTML += `<span class="tag-badge">${tag}</span>`;
-                        });
-                    }
+                // Build out the dynamic tag elements string safely if they exist
+                let tagsHTML = '';
+                if (item.tags && Array.isArray(item.tags)) {
+                    item.tags.forEach(tag => {
+                        tagsHTML += `<span class="tag-badge">${tag}</span>`;
+                    });
+                }
 
-                    card.innerHTML = `
-                        <h3>${item.title}</h3>
-                        <div class="tag-container">${tagsHTML}</div>
-                        <p>${item.summary}</p>
-                        <div class="meta-tags">
-                            <span>Origin Framework:</span>
-                            <span class="source-tag">${item.source}</span>
-                        </div>
-                    `;
-                    container.appendChild(card);
-                });
-            })
-            .catch(err => {
-                document.getElementById('loading').innerText = 'System Offline: Verify your JSONbin data stream pipeline.';
-                console.error(err);
+                card.innerHTML = `
+                    <h3>${item.title}</h3>
+                    <div class="tag-container">${tagsHTML}</div>
+                    <p>${item.summary}</p>
+                    <div class="meta-tags">
+                        <span>Origin Framework:</span>
+                        <span class="source-tag">${item.source}</span>
+                    </div>
+                `;
+                container.appendChild(card);
             });
+        })
+        .catch(err => {
+            document.getElementById('loading').innerText = 'System Offline: Verify your JSONbin data stream pipeline.';
+            console.error(err);
+        });
     </script>
 </body>
 </html>
